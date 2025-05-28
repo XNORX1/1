@@ -50,9 +50,9 @@ def registrar_ingreso():
         c.execute("INSERT INTO personas (fecha, hora) VALUES (?, ?)", (fecha, hora))
         conn.commit()
         conn.close()
-        print(f"Registro guardado: {fecha} {hora}")
+        print("Registro guardado: {} {}".format(fecha, hora))
     except sqlite3.Error as e:
-        print(f"Error al guardar en base de datos: {e}")
+        print("Error al guardar en base de datos: {}".format(e))
 
 # Función de callback del botón con seguridad de hilos
 def button_callback(channel):
@@ -64,7 +64,7 @@ def button_callback(channel):
         button_pressed = True
     
     registrar_ingreso()
-    print(f"Botón presionado. Contador: {count}")
+    print("Botón presionado. Contador: {}".format(count))
 
 GPIO.add_event_detect(BUTTON_PIN, GPIO.RISING, callback=button_callback, bouncetime=300)
 
@@ -130,7 +130,7 @@ def descargar_csv():
         return send_file(archivo_csv, as_attachment=True, download_name='registro_personas.csv')
     
     except Exception as e:
-        return jsonify(error=f"Error al generar CSV: {str(e)}"), 500
+        return jsonify(error="Error al generar CSV: {}".format(str(e))), 500
 
 @app.route('/descargar_txt')
 def descargar_txt():
@@ -147,13 +147,13 @@ def descargar_txt():
             f.write("Registro de Entradas\n")
             f.write("===================\n\n")
             for fecha, hora in rows:
-                f.write(f'{fecha} {hora}\n')
-            f.write(f"\nTotal de registros: {len(rows)}")
+                f.write('{} {}\n'.format(fecha, hora))
+            f.write('\nTotal de registros: {}'.format(len(rows)))
         
         return send_file(archivo_txt, as_attachment=True, download_name='registro_entradas.txt')
     
     except Exception as e:
-        return jsonify(error=f"Error al generar TXT: {str(e)}"), 500
+        return jsonify(error="Error al generar TXT: {}".format(str(e))), 500
 
 @app.route('/estadisticas')
 def estadisticas():
@@ -184,18 +184,18 @@ def estadisticas():
         })
     
     except Exception as e:
-        return jsonify(error=f"Error al obtener estadísticas: {str(e)}"), 500
+        return jsonify(error="Error al obtener estadísticas: {}".format(str(e))), 500
 
 if __name__ == '__main__':
     try:
         print("Iniciando servidor Flask...")
-        print(f"Servidor disponible en: http://localhost:5000")
+        print("Servidor disponible en: http://localhost:5000")
         print("Presiona Ctrl+C para detener el servidor")
         app.run(host='0.0.0.0', port=5000, debug=False)  # debug=False para producción
     except KeyboardInterrupt:
         print("\nDeteniendo servidor...")
     except Exception as e:
-        print(f"Error en el servidor: {e}")
+        print("Error en el servidor: {}".format(e))
     finally:
         cleanup_gpio()
         print("Aplicación terminada")
