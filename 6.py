@@ -82,7 +82,20 @@ def descargar_csv():
 
     conn.close()
     return send_file(archivo_csv, as_attachment=True)
+@app.route('/descargar_txt')
+def descargar_txt():
+    conn = sqlite3.connect('registro.db')
+    cursor = conn.cursor()
+    cursor.execute("SELECT fecha, hora FROM personas")
+    rows = cursor.fetchall()
 
+    with open('e.txt', 'w') as f:
+        for fecha, hora in rows:
+            f.write(f'{fecha} {hora}\n')
+
+    conn.close()
+    return send_file('e.txt', as_attachment=True)
+    
 if __name__ == '__main__':
     try:
         app.run(host='0.0.0.0', port=5000, debug=True)
