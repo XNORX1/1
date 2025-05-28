@@ -17,7 +17,7 @@
         button {
             font-size: 1em;
             padding: 10px 20px;
-            margin-top: 30px;
+            margin-top: 20px;
         }
     </style>
 </head>
@@ -25,7 +25,12 @@
     <h1>Personas contadas: <span id="contador">{{ count }}</span></h1>
     <p>Presiona el botón conectado al pin GPIO 17 para incrementar el contador.</p>
 
-    <p><a href="/descargar_csv"><button>Descargar CSV</button></a></p>
+    <p>
+        <a href="/descargar_csv"><button>Descargar CSV</button></a>
+    </p>
+    <p>
+        <a href="/descargar_txt"><button>Descargar TXT (e.txt)</button></a>
+    </p>
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
