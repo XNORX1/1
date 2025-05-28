@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contador de Personas</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+            text-align: center;
+            min-width: 400px;
+            max-width: 600px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            font-weight: 300;
+        }
+
+        .counter-display {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            border-radius: 15px;
+            padding: 40px 20px;
+            margin: 30px 0;
+            box-shadow: 0 10px 25px rgba(79, 172, 254, 0.3);
+            transform: translateY(0);
+            transition: all 0.3s ease;
+        }
+
+        .counter-display.pulse {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(79, 172, 254, 0.4);
+        }
+
+        .counter-number {
+            font-size: 4em;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .counter-label {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            margin-right: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .status-active {
+            background: #4CAF50;
+            box-shadow: 0 0 10px rgba(76, 175, 80, 0.5);
+            animation: pulse-green 2s infinite;
+        }
+
+        .status-inactive {
+            background: #9E9E9E;
+        }
+
+        @keyframes pulse-green {
+            0% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(76, 175, 80, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0); }
+        }
+
+        .buttons-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 30px 0;
+        }
+
+        .btn {
+            padding: 15px 25px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            color: white;
+            text-align: center;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+        }
+
+        .stats-section {
+            margin-top: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.7);
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 15px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+                margin: 10px;
+            }
+            
+            .counter-number {
+                font-size: 3em;
+            }
+            
+            h1 {
+                font-size: 2em;
+            }
+            
+            .buttons-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 Contador de Personas</h1>
+        
+        <div class="counter-display" id="counterDisplay">
+            <div class="counter-number" id="counterNumber">{{ count }}</div>
+            <div class="counter-label">
+                <span class="status-indicator" id="statusIndicator"></span>
+                Personas registradas
+            </div>
+        </div>
+
+        <div class="buttons-grid">
+            <button class="btn btn-primary" onclick="actualizarContador()">
+                🔄 Actualizar
+            </button>
+            <button class="btn btn-secondary" onclick="reiniciarBoton()">
+                🔘 Reset Estado
+            </button>
+            <button class="btn btn-warning" onclick="reiniciarContador()">
+                ↩️ Reset Contador
+            </button>
+            <a href="/descargar_csv" class="btn btn-success">
+                📊 Descargar CSV
+            </a>
+            <a href="/descargar_txt" class="btn btn-success">
+                📄 Descargar TXT
+            </a>
+            <button class="btn btn-primary" onclick="mostrarEstadisticas()">
+                📈 Estadísticas
+            </button>
+        </div>
+
+        <div class="stats-section" id="statsSection" style="display: none;">
+            <h3>📈 Estadísticas de Uso</h3>
+            <div class="stats-grid" id="statsGrid">
+                <!-- Las estadísticas se cargarán aquí -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let statsVisible = false;
+
+        // Actualizar contador desde el servidor
+        function actualizarContador() {
+            const counterDisplay = document.getElementById('counterDisplay');
+            counterDisplay.classList.add('loading');
+            
+            fetch('/get_count')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('counterNumber').textContent = data.count;
+                    actualizarEstadoBoton(data.button_pressed);
+                    
+                    // Efecto visual al actualizar
+                    counterDisplay.classList.add('pulse');
+                    setTimeout(() => {
+                        counterDisplay.classList.remove('pulse');
+                    }, 500);
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error al actualizar el contador');
+                })
+                .finally(() => {
+                    counterDisplay.classList.remove('loading');
+                });
+        }
+
+        // Reiniciar estado del botón
+        function reiniciarBoton() {
+            fetch('/reset_button')
+                .then(response => response.json())
+                .then(data => {
+                    actualizarEstadoBoton(data.button_pressed);
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error al reiniciar el botón');
+                });
+        }
+
+        // Reiniciar contador
+        function reiniciarContador() {
+            if (confirm('¿Estás seguro de que quieres reiniciar el contador a 0?')) {
+                fetch('/reset_count')
+                    .then(response => response.json())
+                    .then(data => {
+                        document.getElementById('counterNumber').textContent = data.count;
+                        alert('Contador reiniciado correctamente');
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Error al reiniciar el contador');
+                    });
+            }
+        }
+
+        // Actualizar indicador de estado
+        function actualizarEstadoBoton(pressed) {
+            const indicator = document.getElementById('statusIndicator');
+            if (pressed) {
+                indicator.className = 'status-indicator status-active';
+            } else {
+                indicator.className = 'status-indicator status-inactive';
+            }
+        }
+
+        // Mostrar/ocultar estadísticas
+        function mostrarEstadisticas() {
+            const statsSection = document.getElementById('statsSection');
+            
+            if (!statsVisible) {
+                fetch('/estadisticas')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.error) {
+                            alert('Error: ' + data.error);
+                            return;
+                        }
+                        
+                        const statsGrid = document.getElementById('statsGrid');
+                        let html = `
+                            <div class="stat-item">
+                                <div class="stat-number">${data.total}</div>
+                                <div class="stat-label">Total Registros</div>
+                            </div>
+                        `;
+                        
+                        // Mostrar últimos 5 días con datos
+                        data.por_fecha.slice(0, 5).forEach(item => {
+                            html += `
+                                <div class="stat-item">
+                                    <div class="stat-number">${item[1]}</div>
+                                    <div class="stat-label">${item[0]}</div>
+                                </div>
+                            `;
+                        });
+                        
+                        statsGrid.innerHTML = html;
+                        statsSection.style.display = 'block';
+                        statsVisible = true;
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Error al cargar estadísticas');
+                    });
+            } else {
+                statsSection.style.display = 'none';
+                statsVisible = false;
+            }
+        }
+
+        // Actualizar automáticamente cada 5 segundos
+        setInterval(actualizarContador, 5000);
+
+        // Inicializar estado del botón
+        actualizarEstadoBoton({{ button_pressed|lower }});
+    </script>
+</body>
+</html>
