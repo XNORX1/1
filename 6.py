@@ -69,3 +69,20 @@ if __name__ == '__main__':
         print("Saliendo...")
     finally:
         GPIO.cleanup()
+
+
+import sqlite3
+import csv
+
+conn = sqlite3.connect('registro.db')
+cursor = conn.cursor()
+
+cursor.execute("SELECT * FROM personas")
+rows = cursor.fetchall()
+
+with open('personas.csv', 'w', newline='') as f:
+    writer = csv.writer(f)
+    writer.writerow(['id', 'timestamp'])  # encabezados
+    writer.writerows(rows)
+
+conn.close()
