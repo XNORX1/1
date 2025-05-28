@@ -1,0 +1,201 @@
+from flask import Flask, render_template, jsonify, send_file
+import RPi.GPIO as GPIO
+import time
+import sqlite3
+import csv
+import os
+from datetime import datetime
+import threading
+import atexit
+
+app = Flask(__name__)
+
+# Configuración del botón
+GPIO.setmode(GPIO.BCM)
+BUTTON_PIN = 17
+GPIO.setup(BUTTON_PIN, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+
+# Variables globales con seguridad de hilos
+count = 0
+button_pressed = False
+count_lock = threading.Lock()  # Para evitar condiciones de carrera
+
+# Inicializar la base de datos
+def init_db():
+    """Crea la tabla de personas si no existe"""
+    conn = sqlite3.connect('registro.db')
+    c = conn.cursor()
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS personas (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            fecha TEXT,
+            hora TEXT
+        )
+    ''')
+    conn.commit()
+    conn.close()
+
+init_db()
+
+# Registrar entrada con fecha y hora separadas
+def registrar_ingreso():
+    """Guarda un nuevo registro de entrada en la base de datos"""
+    now = datetime.now()
+    fecha = now.strftime('%Y-%m-%d')
+    hora = now.strftime('%H:%M:%S')
+    
+    try:
+        conn = sqlite3.connect('registro.db')
+        c = conn.cursor()
+        c.execute("INSERT INTO personas (fecha, hora) VALUES (?, ?)", (fecha, hora))
+        conn.commit()
+        conn.close()
+        print(f"Registro guardado: {fecha} {hora}")
+    except sqlite3.Error as e:
+        print(f"Error al guardar en base de datos: {e}")
+
+# Función de callback del botón con seguridad de hilos
+def button_callback(channel):
+    """Se ejecuta cuando se presiona el botón"""
+    global count, button_pressed
+    
+    with count_lock:  # Protege las variables compartidas
+        count += 1
+        button_pressed = True
+    
+    registrar_ingreso()
+    print(f"Botón presionado. Contador: {count}")
+
+GPIO.add_event_detect(BUTTON_PIN, GPIO.RISING, callback=button_callback, bouncetime=300)
+
+# Función para limpiar GPIO al salir del programa
+def cleanup_gpio():
+    """Limpia la configuración GPIO"""
+    GPIO.cleanup()
+    print("GPIO limpiado correctamente")
+
+# Registrar función de limpieza para ejecutar al salir
+atexit.register(cleanup_gpio)
+
+@app.route('/')
+def index():
+    """Página principal"""
+    with count_lock:
+        current_count = count
+        current_button_pressed = button_pressed
+    return render_template('index.html', count=current_count, button_pressed=current_button_pressed)
+
+@app.route('/get_count')
+def get_count():
+    """API para obtener el contador actual"""
+    with count_lock:
+        current_count = count
+        current_button_pressed = button_pressed
+    return jsonify(count=current_count, button_pressed=current_button_pressed)
+
+@app.route('/reset_button')
+def reset_button():
+    """Reinicia el estado del botón presionado"""
+    global button_pressed
+    with count_lock:
+        button_pressed = False
+        current_button_pressed = button_pressed
+    return jsonify(button_pressed=current_button_pressed)
+
+@app.route('/reset_count')
+def reset_count():
+    """Reinicia el contador a cero"""
+    global count
+    with count_lock:
+        count = 0
+        current_count = count
+    return jsonify(count=current_count, message="Contador reiniciado")
+
+@app.route('/descargar_csv')
+def descargar_csv():
+    """Descarga todos los registros en formato CSV"""
+    try:
+        conn = sqlite3.connect('registro.db')
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM personas")
+        rows = cursor.fetchall()
+        conn.close()
+        
+        archivo_csv = 'personas.csv'
+        with open(archivo_csv, 'w', newline='', encoding='utf-8') as f:
+            writer = csv.writer(f)
+            writer.writerow(['ID', 'Fecha', 'Hora'])
+            writer.writerows(rows)
+        
+        return send_file(archivo_csv, as_attachment=True, download_name='registro_personas.csv')
+    
+    except Exception as e:
+        return jsonify(error=f"Error al generar CSV: {str(e)}"), 500
+
+@app.route('/descargar_txt')
+def descargar_txt():
+    """Descarga todos los registros en formato TXT"""
+    try:
+        conn = sqlite3.connect('registro.db')
+        cursor = conn.cursor()
+        cursor.execute("SELECT fecha, hora FROM personas ORDER BY fecha DESC, hora DESC")
+        rows = cursor.fetchall()
+        conn.close()
+        
+        archivo_txt = 'registro_entradas.txt'
+        with open(archivo_txt, 'w', encoding='utf-8') as f:
+            f.write("Registro de Entradas\n")
+            f.write("===================\n\n")
+            for fecha, hora in rows:
+                f.write(f'{fecha} {hora}\n')
+            f.write(f"\nTotal de registros: {len(rows)}")
+        
+        return send_file(archivo_txt, as_attachment=True, download_name='registro_entradas.txt')
+    
+    except Exception as e:
+        return jsonify(error=f"Error al generar TXT: {str(e)}"), 500
+
+@app.route('/estadisticas')
+def estadisticas():
+    """Devuelve estadísticas de uso"""
+    try:
+        conn = sqlite3.connect('registro.db')
+        cursor = conn.cursor()
+        
+        # Total de registros
+        cursor.execute("SELECT COUNT(*) FROM personas")
+        total = cursor.fetchone()[0]
+        
+        # Registros por fecha (últimos 10 días)
+        cursor.execute("""
+            SELECT fecha, COUNT(*) as cantidad 
+            FROM personas 
+            GROUP BY fecha 
+            ORDER BY fecha DESC 
+            LIMIT 10
+        """)
+        por_fecha = cursor.fetchall()
+        
+        conn.close()
+        
+        return jsonify({
+            'total': total,
+            'por_fecha': por_fecha
+        })
+    
+    except Exception as e:
+        return jsonify(error=f"Error al obtener estadísticas: {str(e)}"), 500
+
+if __name__ == '__main__':
+    try:
+        print("Iniciando servidor Flask...")
+        print(f"Servidor disponible en: http://localhost:5000")
+        print("Presiona Ctrl+C para detener el servidor")
+        app.run(host='0.0.0.0', port=5000, debug=False)  # debug=False para producción
+    except KeyboardInterrupt:
+        print("\nDeteniendo servidor...")
+    except Exception as e:
+        print(f"Error en el servidor: {e}")
+    finally:
+        cleanup_gpio()
+        print("Aplicación terminada")
