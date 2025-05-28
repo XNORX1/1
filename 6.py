@@ -1,21 +1,23 @@
-from flask import Flask, render_template, jsonify
+from flask import Flask, render_template, jsonify, send_file
 import RPi.GPIO as GPIO
 import time
 import sqlite3
+import csv
+import os
 from datetime import datetime
 
 app = Flask(__name__)
 
-# Configuración de GPIO
+# Configuración del botón
 GPIO.setmode(GPIO.BCM)
 BUTTON_PIN = 17
 GPIO.setup(BUTTON_PIN, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 
-# Variables globales
+# Variables
 count = 0
 button_pressed = False
 
-# Inicializar base de datos
+# Inicializar la base de datos
 def init_db():
     conn = sqlite3.connect('registro.db')
     c = conn.cursor()
@@ -30,7 +32,7 @@ def init_db():
 
 init_db()
 
-# Función para registrar en la base de datos
+# Registrar ingreso
 def registrar_ingreso():
     now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     conn = sqlite3.connect('registro.db')
@@ -62,6 +64,22 @@ def reset_button():
     button_pressed = False
     return jsonify(button_pressed=button_pressed)
 
+@app.route('/descargar_csv')
+def descargar_csv():
+    conn = sqlite3.connect('registro.db')
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM personas")
+    rows = cursor.fetchall()
+
+    archivo_csv = 'personas.csv'
+    with open(archivo_csv, 'w', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow(['id', 'timestamp'])
+        writer.writerows(rows)
+
+    conn.close()
+    return send_file(archivo_csv, as_attachment=True)
+
 if __name__ == '__main__':
     try:
         app.run(host='0.0.0.0', port=5000, debug=True)
@@ -69,5 +87,6 @@ if __name__ == '__main__':
         print("Saliendo...")
     finally:
         GPIO.cleanup()
+
 
 
