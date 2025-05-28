@@ -24,7 +24,8 @@ def init_db():
     c.execute('''
         CREATE TABLE IF NOT EXISTS personas (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            timestamp TEXT
+            fecha TEXT,
+            hora TEXT
         )
     ''')
     conn.commit()
@@ -32,12 +33,14 @@ def init_db():
 
 init_db()
 
-# Registrar ingreso
+# Registrar ingreso con fecha y hora separadas
 def registrar_ingreso():
-    now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    now = datetime.now()
+    fecha = now.strftime('%Y-%m-%d')
+    hora = now.strftime('%H:%M:%S')
     conn = sqlite3.connect('registro.db')
     c = conn.cursor()
-    c.execute("INSERT INTO personas (timestamp) VALUES (?)", (now,))
+    c.execute("INSERT INTO personas (fecha, hora) VALUES (?, ?)", (fecha, hora))
     conn.commit()
     conn.close()
 
@@ -74,7 +77,7 @@ def descargar_csv():
     archivo_csv = 'personas.csv'
     with open(archivo_csv, 'w', newline='') as f:
         writer = csv.writer(f)
-        writer.writerow(['id', 'timestamp'])
+        writer.writerow(['id', 'fecha', 'hora'])
         writer.writerows(rows)
 
     conn.close()
@@ -87,6 +90,3 @@ if __name__ == '__main__':
         print("Saliendo...")
     finally:
         GPIO.cleanup()
-
-
-
